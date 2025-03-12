@@ -11,6 +11,7 @@ import joblib
 import os
 import logging
 from sklearn.utils import shuffle
+from pathlib import Path
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -22,8 +23,13 @@ def train_model():
         # Set a fixed random seed for reproducibility
         np.random.seed(42)
         
+        # Get the absolute path to the dataset
+        base_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent
+        dataset_path = os.path.join(base_dir, 'diabetes_dataset.csv')
+        logger.info(f"Loading dataset from: {dataset_path}")
+        
         # Load the dataset
-        data = pd.read_csv('diabetes_dataset.csv')
+        data = pd.read_csv(dataset_path)
         logger.info(f"Dataset loaded with shape: {data.shape}")
         
         # Handle missing values and convert data types
@@ -109,13 +115,23 @@ def train_model():
         logger.info(f"\nCross-validation scores: {cv_scores}")
         logger.info(f"Average CV score: {cv_scores.mean()}")
         
+        # Get the absolute path to the models directory
+        base_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        models_dir = os.path.join(base_dir, 'models')
+        
         # Create models directory if it doesn't exist
-        os.makedirs('predictor/models', exist_ok=True)
+        os.makedirs(models_dir, exist_ok=True)
+        
+        # Define model file paths
+        model_path = os.path.join(models_dir, 'stacking_model.joblib')
+        scaler_path = os.path.join(models_dir, 'scaler.joblib')
+        model_data_path = os.path.join(models_dir, 'model_data.joblib')
         
         # Save the model and scaler
-        logger.info("Saving model and scaler...")
-        joblib.dump(stacking_classifier, 'predictor/models/stacking_model.joblib')
-        joblib.dump(scaler, 'predictor/models/scaler.joblib')
+        logger.info(f"Saving model to: {model_path}")
+        logger.info(f"Saving scaler to: {scaler_path}")
+        joblib.dump(stacking_classifier, model_path)
+        joblib.dump(scaler, scaler_path)
         
         # Save additional data for visualizations
         model_data = {
@@ -126,7 +142,8 @@ def train_model():
             'y_pred': y_pred,
             'feature_names': X.columns.tolist()
         }
-        joblib.dump(model_data, 'predictor/models/model_data.joblib')
+        logger.info(f"Saving model data to: {model_data_path}")
+        joblib.dump(model_data, model_data_path)
         logger.info("Model data saved successfully")
         
         return stacking_classifier, scaler
@@ -137,15 +154,22 @@ def train_model():
 def predict_diabetes(features):
     try:
         logger.info("Loading model and scaler for prediction...")
-        # Check if model files exist
-        model_path = 'predictor/models/stacking_model.joblib'
-        scaler_path = 'predictor/models/scaler.joblib'
+        # Get the absolute path to the models directory
+        base_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        models_dir = os.path.join(base_dir, 'models')
         
+        # Define model file paths
+        model_path = os.path.join(models_dir, 'stacking_model.joblib')
+        scaler_path = os.path.join(models_dir, 'scaler.joblib')
+        
+        # Check if model files exist
         if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-            logger.error("Model or scaler file not found. Training new model...")
+            logger.error(f"Model or scaler file not found at {model_path} or {scaler_path}. Training new model...")
             train_model()
         
         # Load the saved model and scaler
+        logger.info(f"Loading model from: {model_path}")
+        logger.info(f"Loading scaler from: {scaler_path}")
         model = joblib.load(model_path)
         scaler = joblib.load(scaler_path)
         
@@ -166,15 +190,22 @@ def predict_diabetes(features):
 def get_model_metrics():
     try:
         logger.info("Loading model data for metrics...")
-        # Check if model files exist
-        model_path = 'predictor/models/stacking_model.joblib'
-        model_data_path = 'predictor/models/model_data.joblib'
+        # Get the absolute path to the models directory
+        base_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        models_dir = os.path.join(base_dir, 'models')
         
+        # Define model file paths
+        model_path = os.path.join(models_dir, 'stacking_model.joblib')
+        model_data_path = os.path.join(models_dir, 'model_data.joblib')
+        
+        # Check if model files exist
         if not os.path.exists(model_path) or not os.path.exists(model_data_path):
-            logger.error("Model or model data file not found. Training new model...")
+            logger.error(f"Model or model data file not found at {model_path} or {model_data_path}. Training new model...")
             train_model()
         
         # Load model data
+        logger.info(f"Loading model from: {model_path}")
+        logger.info(f"Loading model data from: {model_data_path}")
         model = joblib.load(model_path)
         model_data = joblib.load(model_data_path)
         

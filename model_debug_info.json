@@ -1,0 +1,70 @@
+{
+  "model_hash": "0a7dded84b039995463b1e439c674de3",
+  "scaler_hash": "1b2e8794e82e4bf36a22b8fe1e35b187",
+  "model_data_hash": "ad828342906f5b7d92a41c8e0ad425a5",
+  "top_features": [
+    {
+      "feature": "FamilyHistory",
+      "importance": 0.8132676120166611
+    },
+    {
+      "feature": "Glucose",
+      "importance": 0.15165478882878447
+    },
+    {
+      "feature": "BMI",
+      "importance": 0.018430103357056173
+    },
+    {
+      "feature": "HDL",
+      "importance": 0.003702707266617069
+    },
+    {
+      "feature": "HbA1c",
+      "importance": 0.003447503434071583
+    }
+  ],
+  "top_correlations": [
+    {
+      "feature1": "Age",
+      "feature2": "MedicationUse",
+      "correlation": 0.8513085109366313
+    },
+    {
+      "feature1": "Glucose",
+      "feature2": "HbA1c",
+      "correlation": 0.8119153654210783
+    },
+    {
+      "feature1": "BMI",
+      "feature2": "WaistCircumference",
+      "correlation": 0.75031006616864
+    },
+    {
+      "feature1": "WaistCircumference",
+      "feature2": "WHR",
+      "correlation": 0.64647180373333
+    },
+    {
+      "feature1": "BMI",
+      "feature2": "HipCircumference",
+      "correlation": 0.6463511279466884
+    }
+  ],
+  "confusion_matrix": [
+    [
+      1185,
+      33
+    ],
+    [
+      68,
+      622
+    ]
+  ],
+  "metrics": {
+    "accuracy": 0.9470649895178197,
+    "precision": 0.9496183206106871,
+    "recall": 0.9014492753623189,
+    "f1_score": 0.924907063197026
+  }
+}
