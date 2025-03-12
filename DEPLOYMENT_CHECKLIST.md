@@ -13,7 +13,8 @@ Use this checklist to ensure you've completed all necessary steps before deployi
   - [ ] `diabetes_dataset.csv` for model training
 - [ ] Verify Django settings are properly configured:
   - [ ] `ALLOWED_HOSTS` includes `.render.com` and `*.onrender.com`
-  - [ ] `CSRF_TRUSTED_ORIGINS` includes Render domains
+  - [ ] `ALLOWED_HOSTS` includes your specific app domain (e.g., `your-app-name.onrender.com`)
+  - [ ] `CSRF_TRUSTED_ORIGINS` includes Render domains and your specific app domain
   - [ ] `STATIC_ROOT` is configured
   - [ ] WhiteNoise middleware is enabled
 - [ ] Consider pre-training the model:
@@ -92,6 +93,7 @@ Use this checklist to ensure you've completed all necessary steps before deployi
 If you encounter issues during deployment:
 
 - [ ] Check the Render logs for specific error messages
+- [ ] If you see a DisallowedHost error, add your specific app domain to ALLOWED_HOSTS
 - [ ] Verify that the dataset file is properly uploaded
 - [ ] Ensure all environment variables are set correctly
 - [ ] Check that the build script is executing properly

@@ -48,10 +48,30 @@ def check_settings_configuration():
         status = "✅" if render_hosts else "❌"
         logger.info(f"{status} ALLOWED_HOSTS {'includes' if render_hosts else 'does not include'} Render domains")
         
+        # Prompt for specific app domain
+        logger.info("\nIMPORTANT: You should add your specific Render app domain to ALLOWED_HOSTS")
+        app_domain = input("Enter your Render app domain (e.g., your-app-name.onrender.com) or press Enter to skip: ").strip()
+        
+        if app_domain:
+            specific_domain = app_domain in settings.ALLOWED_HOSTS
+            status = "✅" if specific_domain else "❌"
+            logger.info(f"{status} ALLOWED_HOSTS {'includes' if specific_domain else 'does not include'} your specific domain '{app_domain}'")
+            
+            if not specific_domain:
+                logger.info(f"⚠️ Add '{app_domain}' to ALLOWED_HOSTS in settings.py to prevent DisallowedHost errors")
+        
         # Check CSRF settings
         csrf_origins = hasattr(settings, 'CSRF_TRUSTED_ORIGINS') and any('render.com' in origin for origin in settings.CSRF_TRUSTED_ORIGINS)
         status = "✅" if csrf_origins else "❌"
         logger.info(f"{status} CSRF_TRUSTED_ORIGINS {'includes' if csrf_origins else 'does not include'} Render domains")
+        
+        if app_domain:
+            specific_csrf = f"https://{app_domain}" in getattr(settings, 'CSRF_TRUSTED_ORIGINS', [])
+            status = "✅" if specific_csrf else "❌"
+            logger.info(f"{status} CSRF_TRUSTED_ORIGINS {'includes' if specific_csrf else 'does not include'} your specific domain 'https://{app_domain}'")
+            
+            if not specific_csrf:
+                logger.info(f"⚠️ Add 'https://{app_domain}' to CSRF_TRUSTED_ORIGINS in settings.py to prevent CSRF errors")
         
         # Check static files configuration
         static_root = hasattr(settings, 'STATIC_ROOT') and settings.STATIC_ROOT

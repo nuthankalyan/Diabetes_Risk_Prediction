@@ -26,10 +26,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-07-wo^w&%k9lz9el@mk@f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', '.pythonanywhere.com', '.render.com', '*.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com', '.pythonanywhere.com', '.render.com', '*.onrender.com', 'diabetes-risk-prediction-f4lg.onrender.com']
 
 # CSRF settings
-CSRF_TRUSTED_ORIGINS = ['https://*.render.com', 'https://*.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://*.render.com', 'https://*.onrender.com', 'https://diabetes-risk-prediction-f4lg.onrender.com']
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'

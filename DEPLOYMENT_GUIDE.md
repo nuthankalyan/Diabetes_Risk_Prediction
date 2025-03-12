@@ -71,6 +71,25 @@ If using the Render Dashboard (without Blueprint):
 
 ## Troubleshooting Common Issues
 
+### DisallowedHost Error
+
+If you encounter a `DisallowedHost` error like this:
+
+```
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'your-app-name.onrender.com'. You may need to add 'your-app-name.onrender.com' to ALLOWED_HOSTS.
+```
+
+This means Django is rejecting requests because the exact domain name is not in the `ALLOWED_HOSTS` setting. To fix this:
+
+1. Note the exact domain name from the error message (e.g., `your-app-name.onrender.com`)
+2. Update your `settings.py` file to include this specific domain:
+   ```python
+   ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.render.com', '*.onrender.com', 'your-app-name.onrender.com']
+   CSRF_TRUSTED_ORIGINS = ['https://*.render.com', 'https://*.onrender.com', 'https://your-app-name.onrender.com']
+   ```
+3. Commit and push these changes to your repository
+4. Render will automatically redeploy your application with the updated settings
+
 ### 400 Bad Request Error
 
 If you encounter a 400 Bad Request error:
