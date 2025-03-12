@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: diabetes-prediction
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn diabetes_prediction.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+    autoDeploy: true 
