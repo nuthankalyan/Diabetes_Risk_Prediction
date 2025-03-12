@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 def train_model():
     try:
         logger.info("Starting model training...")
+        # Set a fixed random seed for reproducibility
+        np.random.seed(42)
+        
         # Load the dataset
         data = pd.read_csv('diabetes_dataset.csv')
         logger.info(f"Dataset loaded with shape: {data.shape}")
@@ -41,6 +44,7 @@ def train_model():
         data[categorical_columns] = data[categorical_columns].fillna(0)
         
         # Add significant noise to the data to prevent overfitting
+        # Using a fixed random seed for consistent results
         for col in numeric_columns:
             # Add random noise (5-15% of the standard deviation)
             noise_level = np.random.uniform(0.05, 0.15) * data[col].std()
@@ -48,7 +52,7 @@ def train_model():
         
         # Add noise to the target variable (flip some labels)
         # This simulates real-world misdiagnosis or data entry errors
-        np.random.seed(42)
+        # np.random.seed(42) - Already set at the beginning of the function
         flip_indices = np.random.choice(len(data), size=int(0.05 * len(data)), replace=False)
         data.loc[flip_indices, 'Outcome'] = 1 - data.loc[flip_indices, 'Outcome']
         

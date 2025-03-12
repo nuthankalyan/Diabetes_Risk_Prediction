@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """
 Script to pre-train the diabetes prediction model and save it to the repository.
-This can be useful if model training is failing during deployment.
+This ensures consistent model visualizations across different environments.
 """
 
 import os
 import sys
 import logging
+import shutil
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -25,16 +26,40 @@ def main():
         # Create models directory if it doesn't exist
         os.makedirs('predictor/models', exist_ok=True)
         
+        # Backup existing model files if they exist
+        model_files = [
+            'predictor/models/stacking_model.joblib',
+            'predictor/models/scaler.joblib',
+            'predictor/models/model_data.joblib'
+        ]
+        
+        backup_dir = 'predictor/models/backup'
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        for file in model_files:
+            if os.path.exists(file):
+                backup_file = os.path.join(backup_dir, os.path.basename(file))
+                logger.info(f"Backing up {file} to {backup_file}")
+                shutil.copy2(file, backup_file)
+        
         # Train the model
         model, scaler = train_model()
         
         logger.info("Model pre-training completed successfully!")
         logger.info("Model files saved to predictor/models/")
-        logger.info("You can now commit these files to your repository.")
         
         # List the model files
         model_files = os.listdir('predictor/models')
+        model_files = [f for f in model_files if f != 'backup']
         logger.info(f"Model files: {model_files}")
+        
+        logger.info("\nIMPORTANT: To ensure consistent visualizations across environments:")
+        logger.info("1. Commit these model files to your repository:")
+        logger.info("   git add predictor/models/*.joblib")
+        logger.info("   git commit -m \"Add pre-trained model files for consistent visualizations\"")
+        logger.info("   git push")
+        logger.info("2. Deploy the updated repository to Render")
+        logger.info("3. This will ensure both local and deployed environments use the same model")
         
         return 0
     except Exception as e:
