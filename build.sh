@@ -21,8 +21,8 @@ if [ -f "predictor/models/stacking_model.joblib" ] && [ -f "predictor/models/sca
     ls -la predictor/models/*.joblib
 else
     echo "Pre-trained model files not found. Training the model..."
-    # Train the model
-    python predictor/ml_model.py
+    # Train the model using the train_model.py script
+    python train_model.py
     echo "Model training completed. Model files:"
     ls -la predictor/models/*.joblib
 fi 

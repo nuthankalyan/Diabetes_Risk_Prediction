@@ -7,6 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_curve, auc
 from sklearn.ensemble import StackingClassifier
+from catboost import CatBoostClassifier
 import joblib
 import os
 import logging
@@ -86,7 +87,8 @@ def train_model():
         base_models = [
             ('rf', RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_split=10, random_state=42)),
             ('gb', GradientBoostingClassifier(n_estimators=100, learning_rate=0.01, max_depth=3, subsample=0.8, random_state=42)),
-            ('svc', SVC(kernel='rbf', C=0.5, gamma='auto', probability=True, random_state=42))
+            ('svc', SVC(kernel='rbf', C=0.5, gamma='auto', probability=True, random_state=42)),
+            ('cat', CatBoostClassifier(iterations=100, learning_rate=0.01, depth=3, loss_function='Logloss', random_seed=42, verbose=0))
         ]
         
         # Define meta-model with regularization
@@ -177,8 +179,20 @@ def predict_diabetes(features):
         model = joblib.load(model_path)
         scaler = joblib.load(scaler_path)
         
-        # Scale the features
-        features_scaled = scaler.transform([features])
+        # Handle gender encoding
+        gender_le = LabelEncoder()
+        gender_le.fit(['Male', 'Female'])  # Fit with possible gender values
+        gender_numeric = gender_le.transform([features[1]])[0]  # Encode the gender
+        
+        # Create a copy of features with gender encoded
+        features_modified = features.copy()
+        features_modified[1] = gender_numeric
+        
+        # Convert all features to float
+        features_arr = np.array(features_modified, dtype=float).reshape(1, -1)
+        
+        # Scale features
+        features_scaled = scaler.transform(features_arr)
         
         # Make prediction
         prediction = model.predict(features_scaled)
