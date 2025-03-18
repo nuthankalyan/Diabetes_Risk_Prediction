@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
@@ -25,7 +25,7 @@ def train_model():
         
         # Get the absolute path to the dataset
         base_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent
-        dataset_path = os.path.join(base_dir, 'diabetes_dataset.csv')
+        dataset_path = os.path.join(base_dir, 'diabetes_dataset_with_gender.csv')
         logger.info(f"Loading dataset from: {dataset_path}")
         
         # Load the dataset
@@ -35,14 +35,18 @@ def train_model():
         # Handle missing values and convert data types
         numeric_columns = ['Age', 'Pregnancies', 'BMI', 'Glucose', 'BloodPressure', 'HbA1c', 
                           'LDL', 'HDL', 'Triglycerides', 'WaistCircumference', 'HipCircumference', 'WHR']
-        categorical_columns = ['FamilyHistory', 'DietType', 'Hypertension', 'MedicationUse']
+        categorical_columns = ['Gender', 'FamilyHistory', 'DietType', 'Hypertension', 'MedicationUse']
         
         # Convert numeric columns
         for col in numeric_columns:
             data[col] = pd.to_numeric(data[col], errors='coerce')
         
         # Convert categorical columns
-        for col in categorical_columns:
+        le = LabelEncoder()
+        data['Gender'] = le.fit_transform(data['Gender'])
+        joblib.dump(le, os.path.join(base_dir, 'predictor/gender_encoder.joblib'))
+        
+        for col in categorical_columns[1:]:  # Skip Gender as it's already encoded
             data[col] = data[col].astype(int)
         
         # Fill missing values

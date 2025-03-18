@@ -2,6 +2,7 @@ from django import forms
 
 class DiabetesPredictionForm(forms.Form):
     Age = forms.IntegerField(min_value=0, max_value=120)
+    Gender = forms.ChoiceField(choices=[('Male', 'Male'), ('Female', 'Female')])
     Pregnancies = forms.IntegerField(min_value=0, max_value=20)
     BMI = forms.FloatField(min_value=10, max_value=50)
     Glucose = forms.FloatField(min_value=50, max_value=200)

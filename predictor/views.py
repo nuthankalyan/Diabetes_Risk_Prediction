@@ -24,6 +24,7 @@ def home(request):
             # Get features from form
             features = [
                 float(form.cleaned_data['Age']),
+                form.cleaned_data['Gender'],  # Gender is now the second feature
                 float(form.cleaned_data['Pregnancies']),
                 float(form.cleaned_data['BMI']),
                 float(form.cleaned_data['Glucose']),
@@ -48,7 +49,7 @@ def home(request):
                 probability = round(prob[1] * 100, 2) if prediction == 1 else round(prob[0] * 100, 2)
             except Exception as e:
                 prediction_result = "Error in prediction"
-                probability = None
+                print(f"Error: {str(e)}")
 
     return render(request, 'predictor/home.html', {
         'form': form,
