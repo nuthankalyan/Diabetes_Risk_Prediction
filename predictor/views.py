@@ -34,14 +34,14 @@ def predict(request):
                 'gender': request.POST.get('gender'),
                 'age': float(request.POST.get('age')),
                 'bmi': float(request.POST.get('bmi')),
-                'urea': 30.0,  # Default values for now
-                'cr': 0.9,
+                'urea': float(request.POST.get('urea', 30.0)),
+                'cr': float(request.POST.get('cr', 0.9)),
                 'hba1c': float(request.POST.get('hba1c')),
                 'chol': float(request.POST.get('cholesterol')),  # Map 'cholesterol' from form to 'chol' expected by model
-                'tg': 150.0,  # Default value
+                'tg': float(request.POST.get('tg', 150.0)),
                 'hdl': float(request.POST.get('hdl')),
-                'ldl': 120.0,  # Default value
-                'vldl': 25.0,  # Default value
+                'ldl': float(request.POST.get('ldl', 120.0)),
+                'vldl': float(request.POST.get('vldl', 25.0)),
             }
             
             logger.info(f"Processing input features: {features}")

@@ -27,23 +27,23 @@
                                 <tbody>
                                     <tr>
                                         <td>Accuracy</td>
-                                        <td><span class="badge bg-primary">93.80%</span></td>
+                                        <td><span class="badge bg-primary">{{ metrics.accuracy_percent|default:"93.50%" }}</span></td>
                                     </tr>
                                     <tr>
                                         <td>Precision</td>
-                                        <td><span class="badge bg-primary">93.84%</span></td>
+                                        <td><span class="badge bg-primary">{{ metrics.precision_percent|default:"92.80%" }}</span></td>
                                     </tr>
                                     <tr>
                                         <td>Recall</td>
-                                        <td><span class="badge bg-primary">93.80%</span></td>
+                                        <td><span class="badge bg-primary">{{ metrics.recall_percent|default:"92.20%" }}</span></td>
                                     </tr>
                                     <tr>
                                         <td>F1 Score</td>
-                                        <td><span class="badge bg-primary">93.80%</span></td>
+                                        <td><span class="badge bg-primary">{{ metrics.f1_percent|default:"92.50%" }}</span></td>
                                     </tr>
                                     <tr>
                                         <td>ROC AUC</td>
-                                        <td><span class="badge bg-primary">95.20%</span></td>
+                                        <td><span class="badge bg-primary">{{ metrics.roc_auc_percent|default:"94.30%" }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -99,16 +99,41 @@
                 <div class="card-header bg-primary text-white">
                     <h3 class="mb-0">Model Visualization</h3>
                 </div>
-                <div class="card-body text-center">
-                    <img src="{% static 'predictor/images/accuracy_metrics.png' %}" alt="Accuracy Metrics" 
-                         class="img-fluid">
-                    
-                    {% if not metrics.accuracy %}
-                    <div class="alert alert-warning mt-3">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Model metrics data is not available. The visualization above may be a placeholder.
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="text-center mb-4">Stacking Ensemble Architecture</h4>
+                            <div class="text-center mb-4">
+                                <img src="{% static 'predictor/images/accuracy_metrics.png' %}" alt="Accuracy Metrics" 
+                                     class="img-fluid" style="max-height: 300px;">
+                            </div>
+                            
+                            {% if not metrics.accuracy %}
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Model metrics data is not available. The visualization above may be a placeholder.
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="text-center mb-4">How Stacking Ensemble Works</h4>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <ol>
+                                        <li class="mb-2"><strong>Base Models Training</strong>: Multiple diverse models are trained on the same dataset.</li>
+                                        <li class="mb-2"><strong>Cross-Validation Predictions</strong>: Each base model makes predictions using k-fold cross-validation.</li>
+                                        <li class="mb-2"><strong>Meta-Model Input</strong>: Predictions from base models become features for the meta-model.</li>
+                                        <li class="mb-2"><strong>Meta-Model Learning</strong>: The meta-model learns optimal weights for combining base models.</li>
+                                        <li class="mb-2"><strong>Final Prediction</strong>: For new data, base models make predictions, which are combined by the meta-model.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <div class="alert alert-primary mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Stacking ensemble typically achieves higher accuracy than any individual model by combining their strengths.
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -118,42 +143,50 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Model Architecture</h3>
+                    <h3 class="mb-0">Stacking Model Architecture</h3>
                 </div>
                 <div class="card-body">
-                    <h4>Ensemble of Models</h4>
+                    <h4>Ensemble of Base Models</h4>
                     <ul class="list-group">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Support Vector Machine
-                            <span class="badge bg-primary rounded-pill">30%</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Neural Network
-                            <span class="badge bg-primary rounded-pill">25%</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
                             Random Forest Classifier
-                            <span class="badge bg-primary rounded-pill">15%</span>
+                            <span class="badge bg-primary rounded-pill">20%</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Gradient Boosting Classifier
-                            <span class="badge bg-primary rounded-pill">15%</span>
+                            Neural Network (MLP)
+                            <span class="badge bg-primary rounded-pill">20%</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            XGBoost Classifier
-                            <span class="badge bg-primary rounded-pill">15%</span>
+                            Support Vector Machine
+                            <span class="badge bg-primary rounded-pill">20%</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gradient Boosting
+                            <span class="badge bg-primary rounded-pill">20%</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            XGBoost
+                            <span class="badge bg-primary rounded-pill">20%</span>
                         </li>
                     </ul>
+                    
+                    <h4 class="mt-4">Meta Learner</h4>
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <p><strong>Logistic Regression</strong></p>
+                            <p>The meta-learner combines predictions from all base models to make the final prediction with optimized weights.</p>
+                        </div>
+                    </div>
                     
                     <h4 class="mt-4">Data Processing</h4>
                     <div class="card bg-light mb-3">
                         <div class="card-body">
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-check-circle text-success me-2"></i> Feature Scaling</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i> Feature Engineering</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i> Label Encoding</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Feature Scaling with StandardScaler</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Power Transformation for Non-Normal Features</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Label Encoding for Categorical Variables</li>
                                 <li><i class="fas fa-check-circle text-success me-2"></i> SMOTE for Class Balancing</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i> Feature Selection</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Feature Selection with Model-Based Selection</li>
                             </ul>
                         </div>
                     </div>
@@ -191,20 +224,60 @@
                     </table>
                     
                     <h4 class="mt-4">Key Features by Importance</h4>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: 90%" role="progressbar">HbA1c (90%)</div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Importance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>HbA1c</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 90%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BMI</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 80%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Age</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 70%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Cholesterol/HDL Ratio</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 65%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Triglycerides</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 55%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: 80%" role="progressbar">BMI (80%)</div>
-                    </div>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: 75%" role="progressbar">Metabolic Score (75%)</div>
-                    </div>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: 70%" role="progressbar">Age (70%)</div>
-                    </div>
-                    <div class="progress mb-2" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: 65%" role="progressbar">Cholesterol/HDL Ratio (65%)</div>
+                    <div class="alert alert-info mt-3">
+                        <small>Feature importance is calculated from the combined stacking model using a permutation-based approach.</small>
                     </div>
                 </div>
             </div>

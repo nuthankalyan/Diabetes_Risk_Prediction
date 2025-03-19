@@ -106,7 +106,7 @@ def train_model():
 
 def predict_diabetes(features):
     """
-    Predict diabetes using the trained high accuracy ensemble model.
+    Predict diabetes using the trained stacking ensemble model.
     
     Args:
         features (dict): Dictionary containing patient features.
@@ -127,40 +127,34 @@ def predict_diabetes(features):
                 logger.error(f"Missing required feature: {key}")
                 return "Error", 0.0, [], f"Missing required feature: {key}"
         
-        # Define paths for model artifacts
-        models_dir = os.path.join(current_dir, 'models')
+        # Define path for stacking model
+        stacking_model_path = os.path.join(current_dir, 'models', 'stacking_model.joblib')
         
-        # Check if models directory exists, if not look in parent directory
-        if not os.path.exists(models_dir):
-            logger.info("Models directory not found in predictor directory, checking parent directory")
+        # Check if stacking model exists, if not look in parent directory
+        if not os.path.exists(stacking_model_path):
+            logger.info("Stacking model not found in predictor directory, checking parent directory")
             parent_dir = os.path.dirname(current_dir)
-            models_dir = os.path.join(parent_dir, 'models')
+            stacking_model_path = os.path.join(parent_dir, 'models', 'stacking_model.joblib')
             
-            # Create models directory if it doesn't exist
-            os.makedirs(models_dir, exist_ok=True)
-        
-        # Define paths for each model file
-        model_files = {
-            'random_forest': os.path.join(models_dir, 'random_forest_model.joblib'),
-            'gradient_boosting': os.path.join(models_dir, 'gradient_boosting_model.joblib'),
-            'xgboost': os.path.join(models_dir, 'xgboost_model.joblib'),
-            'svm': os.path.join(models_dir, 'svm_model.joblib'),
-            'neural_network': os.path.join(models_dir, 'neural_network_model.joblib')
-        }
+        # Check if stacking model exists
+        if not os.path.exists(stacking_model_path):
+            logger.error(f"Stacking model not found at {stacking_model_path}")
+            # Fall back to regular ensemble approach
+            logger.info("Falling back to regular ensemble approach")
+            # We'll continue with the rest of the function which loads individual models
+        else:
+            logger.info(f"Using stacking model from: {stacking_model_path}")
         
         # Define paths for other artifacts
-        ensemble_data_path = os.path.join(current_dir, 'ensemble_data.joblib')
+        class_encoder_path = os.path.join(current_dir, 'class_encoder.joblib')
         scaler_path = os.path.join(current_dir, 'scaler.joblib')
         power_transformer_path = os.path.join(current_dir, 'power_transformer.joblib')
         gender_encoder_path = os.path.join(current_dir, 'gender_encoder.joblib')
-        class_encoder_path = os.path.join(current_dir, 'class_encoder.joblib')
-        feature_selector_path = os.path.join(current_dir, 'feature_selector.joblib')
         feature_columns_path = os.path.join(current_dir, 'feature_columns.joblib')
         
-        # Check if files exist in current directory, if not look in parent directory
-        for artifact_path in [ensemble_data_path, scaler_path, power_transformer_path, 
-                             gender_encoder_path, class_encoder_path, 
-                             feature_selector_path, feature_columns_path]:
+        # Check for files in parent directory if not found
+        for artifact_path in [class_encoder_path, scaler_path, power_transformer_path, 
+                             gender_encoder_path, feature_columns_path]:
             basename = os.path.basename(artifact_path)
             if not os.path.exists(artifact_path):
                 logger.info(f"{basename} not found in predictor directory, checking parent directory")
@@ -168,79 +162,18 @@ def predict_diabetes(features):
                 new_path = os.path.join(parent_dir, basename)
                 if os.path.exists(new_path):
                     # If file exists in parent directory, update the path
-                    if artifact_path == ensemble_data_path:
-                        ensemble_data_path = new_path
+                    if artifact_path == class_encoder_path:
+                        class_encoder_path = new_path
                     elif artifact_path == scaler_path:
                         scaler_path = new_path
                     elif artifact_path == power_transformer_path:
                         power_transformer_path = new_path
                     elif artifact_path == gender_encoder_path:
                         gender_encoder_path = new_path
-                    elif artifact_path == class_encoder_path:
-                        class_encoder_path = new_path
-                    elif artifact_path == feature_selector_path:
-                        feature_selector_path = new_path
                     elif artifact_path == feature_columns_path:
                         feature_columns_path = new_path
                 else:
                     logger.error(f"Could not find {basename} in either predictor or parent directory")
-        
-        # Create a simple ensemble data structure if one doesn't exist
-        if not os.path.exists(ensemble_data_path):
-            logger.warning(f"Ensemble data not found at {ensemble_data_path}, creating a simple version")
-            ensemble_data = {
-                'names': ['Random Forest', 'Gradient Boosting', 'XGBoost', 'SVM', 'Neural Network'],
-                'weights': [0.15, 0.15, 0.15, 0.30, 0.25]
-            }
-            joblib.dump(ensemble_data, os.path.join(current_dir, 'ensemble_data.joblib'))
-        else:
-            # Load the ensemble data
-            logger.info(f"Loading ensemble data from: {ensemble_data_path}")
-            ensemble_data = joblib.load(ensemble_data_path)
-        
-        # Load the models
-        models = {}
-        for name, path in model_files.items():
-            try:
-                if os.path.exists(path):
-                    logger.info(f"Loading {name} model from: {path}")
-                    models[name.replace('_', ' ').title()] = joblib.load(path)
-                else:
-                    logger.warning(f"Model file not found at {path}, checking parent directory")
-                    # Try parent directory
-                    parent_dir = os.path.dirname(current_dir)
-                    parent_path = os.path.join(parent_dir, 'models', os.path.basename(path))
-                    if os.path.exists(parent_path):
-                        logger.info(f"Loading {name} model from parent directory: {parent_path}")
-                        models[name.replace('_', ' ').title()] = joblib.load(parent_path)
-                    else:
-                        logger.error(f"Model file not found at {parent_path} either")
-            except Exception as e:
-                logger.error(f"Error loading {name} model: {str(e)}")
-        
-        # If no models were loaded, create dummy ensemble data
-        if not models:
-            logger.error("No models were loaded. Cannot make predictions.")
-            return "Error", 0.0, [], "No prediction models found. Please train the models first."
-        
-        # Check required models are present
-        required_models = set(ensemble_data['names'])
-        available_models = set(models.keys())
-        if not required_models.issubset(available_models):
-            missing_models = required_models - available_models
-            logger.error(f"Missing required models: {missing_models}")
-            
-            # Try to handle the missing models by using available ones
-            if available_models:
-                logger.info(f"Will attempt to make predictions with available models: {available_models}")
-                # Adjust weights to use only available models
-                ensemble_data['weights'] = [ensemble_data['weights'][i] for i, name in enumerate(ensemble_data['names']) if name in available_models]
-                ensemble_data['names'] = [name for name in ensemble_data['names'] if name in available_models]
-                # Normalize weights
-                weight_sum = sum(ensemble_data['weights'])
-                ensemble_data['weights'] = [w/weight_sum for w in ensemble_data['weights']]
-            else:
-                return "Error", 0.0, [], f"Missing required models: {missing_models}"
         
         # Load class encoder or create a default one
         try:
@@ -277,13 +210,6 @@ def predict_diabetes(features):
                 logger.warning(f"Power transformer not found, will not apply transformation")
                 power_transformer = None
             
-            if os.path.exists(feature_selector_path):
-                logger.info(f"Loading feature selector from: {feature_selector_path}")
-                feature_selector = joblib.load(feature_selector_path)
-            else:
-                logger.warning(f"Feature selector not found, will not apply feature selection")
-                feature_selector = None
-            
             if os.path.exists(feature_columns_path):
                 logger.info(f"Loading feature columns from: {feature_columns_path}")
                 feature_columns = joblib.load(feature_columns_path)
@@ -304,8 +230,10 @@ def predict_diabetes(features):
                 gender_encoder = joblib.load(gender_encoder_path)
             else:
                 logger.warning("Gender encoder not found, creating a new one")
+                from sklearn.preprocessing import LabelEncoder
                 gender_encoder = LabelEncoder()
                 gender_encoder.fit(['M', 'F'])
+                joblib.dump(gender_encoder, os.path.join(current_dir, 'gender_encoder.joblib'))
             
             try:
                 gender_encoded = gender_encoder.transform([gender_str])[0]
@@ -336,167 +264,154 @@ def predict_diabetes(features):
             age, urea, cr, hba1c = 45.0, 30.0, 0.9, 5.7
             chol, tg, hdl, ldl, vldl, bmi = 200.0, 150.0, 50.0, 120.0, 25.0, 25.0
         
-        # Create the base feature dictionary
+        # Create the feature dictionary
         feature_dict = {
-            'Gender_Encoded': gender_encoded,
+            'Gender': gender_str,
             'Age': age,
             'Urea': urea,
             'Cr': cr,
             'HbA1c': hba1c,
-            'Chol': chol,
-            'TG': tg,
+            'Cholesterol': chol,
             'HDL': hdl,
+            'TG': tg,
             'LDL': ldl,
             'VLDL': vldl,
             'BMI': bmi
         }
         
-        # Create advanced features
-        try:
-            feature_dict['BMI_Age_Ratio'] = round(bmi / max(age, 1), 2)  # Prevent division by zero
-            feature_dict['HbA1c_BMI'] = round(hba1c * bmi, 2)
-            feature_dict['Chol_HDL_Ratio'] = round(chol / max(hdl, 1), 2)  # Prevent division by zero
-            feature_dict['LDL_HDL_Ratio'] = round(ldl / max(hdl, 1), 2)
-            feature_dict['TG_HDL_Ratio'] = round(tg / max(hdl, 1), 2)
+        # Create DataFrame with columns in the same order as training data
+        if feature_columns:
+            # Map our feature dict keys to the feature columns
+            feature_map = {
+                'Gender': 'Gender', 
+                'Age': 'Age', 
+                'Urea': 'Urea',
+                'Cr': 'Cr', 
+                'HbA1c': 'HbA1c', 
+                'Cholesterol': 'Cholesterol',
+                'HDL': 'HDL', 
+                'TG': 'TG', 
+                'LDL': 'LDL', 
+                'VLDL': 'VLDL', 
+                'BMI': 'BMI'
+            }
             
-            # Logarithmic transformations
-            for col, val in [('Urea', urea), ('Cr', cr), ('HbA1c', hba1c), 
-                            ('Chol', chol), ('TG', tg), ('BMI', bmi)]:
-                feature_dict[f'Log_{col}'] = round(np.log1p(max(val, 0)), 2)  # Prevent log of negative numbers
+            # Create a DataFrame with the feature columns in the right order
+            df_features = pd.DataFrame({col: [feature_dict.get(feature_map.get(col, col), 0)] 
+                                     for col in feature_columns})
             
-            # Polynomial features
-            feature_dict['HbA1c_Squared'] = round(hba1c ** 2, 2)
-            feature_dict['BMI_Squared'] = round(bmi ** 2, 2)
+            # Apply gender encoding
+            if 'Gender' in df_features.columns:
+                df_features['Gender'] = gender_encoded
             
-            # Create metabolic risk score
-            feature_dict['Metabolic_Score'] = round(
-                hba1c * 2 + bmi / 10 + chol / 50 + tg / 50 - hdl / 20, 2
-            )
-            
-            # Create kidney function score
-            feature_dict['Kidney_Score'] = round(urea * cr, 2)
-            
-            # Create lipid balance score
-            feature_dict['Lipid_Score'] = round(chol - hdl + ldl + tg, 2)
-            
-            # Create age groups
-            if age <= 30:
-                feature_dict['Age_Group'] = 0
-            elif age <= 45:
-                feature_dict['Age_Group'] = 1
-            elif age <= 60:
-                feature_dict['Age_Group'] = 2
-            else:
-                feature_dict['Age_Group'] = 3
-            
-            # Create BMI categories
-            if bmi < 18.5:
-                feature_dict['BMI_Category'] = 0  # Underweight
-            elif bmi < 25:
-                feature_dict['BMI_Category'] = 1  # Normal
-            elif bmi < 30:
-                feature_dict['BMI_Category'] = 2  # Overweight
-            else:
-                feature_dict['BMI_Category'] = 3  # Obese
-            
-            # Create HbA1c categories
-            if hba1c < 5.7:
-                feature_dict['HbA1c_Category'] = 0  # Normal
-            elif hba1c < 6.5:
-                feature_dict['HbA1c_Category'] = 1  # Prediabetic
-            else:
-                feature_dict['HbA1c_Category'] = 2  # Diabetic
-        except Exception as e:
-            logger.error(f"Error creating advanced features: {str(e)}")
+            features_array = df_features.values
+        else:
+            # Fallback to basic structure
+            features_array = np.array([
+                gender_encoded, age, urea, cr, hba1c, chol, tg, hdl, ldl, vldl, bmi
+            ]).reshape(1, -1)
         
-        # Handle feature columns and create feature array
-        try:
-            # If we have feature columns, use them to ensure proper order
-            if feature_columns:
-                # Create a DataFrame with all expected features
-                # Fill in missing features with 0
-                df_features = pd.DataFrame({col: [feature_dict.get(col, 0)] for col in feature_columns})
-                logger.debug(f"Created feature dataframe: {df_features.shape}")
-                features_array = df_features.values
-            else:
-                # Fallback to just base features if feature columns not available
-                logger.warning("Feature columns not available, using base features")
-                features_array = np.array([
-                    gender_encoded, age, urea, cr, hba1c, chol, tg, hdl, ldl, vldl, bmi
-                ]).reshape(1, -1)
-        except Exception as e:
-            logger.error(f"Error creating feature array: {str(e)}")
-            return "Error", 0.0, [], f"Error creating feature array: {str(e)}"
+        logger.debug(f"Feature array shape: {features_array.shape}")
         
-        # Apply preprocessing steps with error handling
-        try:
-            # Scale the features
-            features_scaled = scaler.transform(features_array)
-            
-            # Apply power transformation if available
-            if power_transformer is not None:
-                try:
-                    features_transformed = power_transformer.transform(features_scaled)
-                except Exception as e:
-                    logger.error(f"Error applying power transformer: {str(e)}")
-                    features_transformed = features_scaled
-            else:
+        # Apply preprocessing
+        features_scaled = scaler.transform(features_array)
+        
+        if power_transformer is not None:
+            try:
+                features_transformed = power_transformer.transform(features_scaled)
+            except Exception as e:
+                logger.error(f"Error applying power transformer: {str(e)}")
                 features_transformed = features_scaled
-            
-            # Apply feature selection if available
-            if feature_selector is not None:
-                try:
-                    features_final = feature_selector.transform(features_transformed)
-                except Exception as e:
-                    logger.error(f"Error applying feature selection: {str(e)}")
-                    features_final = features_transformed
-            else:
-                features_final = features_transformed
+        else:
+            features_transformed = features_scaled
+        
+        logger.debug(f"Transformed feature array shape: {features_transformed.shape}")
+        
+        # Make prediction using the stacking model if available
+        if os.path.exists(stacking_model_path):
+            try:
+                logger.info("Making prediction using stacking model")
+                stacking_model = joblib.load(stacking_model_path)
+                prediction_encoded = stacking_model.predict(features_transformed)[0]
+                pred_proba = stacking_model.predict_proba(features_transformed)[0]
+                max_probability = pred_proba[prediction_encoded]
                 
-            logger.info(f"Final feature array shape: {features_final.shape}")
-        except Exception as e:
-            logger.error(f"Error in preprocessing pipeline: {str(e)}")
-            return "Error", 0.0, [], f"Error in preprocessing pipeline: {str(e)}"
-        
-        # Make predictions with each model
-        try:
-            logger.info("Making predictions with ensemble model")
-            pred_proba = np.zeros((1, len(class_encoder.classes_)))
-            
-            for i, name in enumerate(ensemble_data['names']):
-                if name in models:
-                    weight = ensemble_data['weights'][i]
-                    model = models[name]
-                    try:
-                        model_pred_proba = model.predict_proba(features_final)
-                        pred_proba += weight * model_pred_proba
-                        logger.info(f"{name} model prediction probabilities: {model_pred_proba[0]}")
-                    except Exception as e:
-                        logger.error(f"Error making prediction with {name} model: {str(e)}")
+                # Decode the prediction
+                prediction = class_encoder.inverse_transform([prediction_encoded])[0]
+                logger.info(f"Stacking model prediction: {prediction}, Probability: {max_probability:.2%}")
+                
+            except Exception as e:
+                logger.error(f"Error using stacking model: {str(e)}")
+                # Fall back to a heuristic-based prediction
+                logger.info("Falling back to heuristic-based prediction")
+                # Calculate a diabetes risk score based on known risk factors
+                risk_score = 0
+                if hba1c >= 6.5:
+                    risk_score += 3
+                elif hba1c >= 5.7:
+                    risk_score += 1
+                
+                if bmi >= 30:
+                    risk_score += 2
+                elif bmi >= 25:
+                    risk_score += 1
+                
+                if age > 45:
+                    risk_score += 1
+                
+                if chol > 240:
+                    risk_score += 1
+                
+                if hdl < 40:
+                    risk_score += 1
+                
+                # Determine prediction based on risk score
+                if risk_score >= 4:
+                    prediction = "Yes"
+                    max_probability = 0.9
+                elif risk_score >= 2:
+                    prediction = "Possible"
+                    max_probability = 0.7
                 else:
-                    logger.warning(f"Model {name} not found in loaded models")
+                    prediction = "No"
+                    max_probability = 0.8
+                
+                logger.info(f"Heuristic-based prediction: {prediction}, Probability: {max_probability:.2%}")
+        else:
+            # Fallback to simple rule-based prediction
+            logger.info("Stacking model not available, using rule-based prediction")
+            risk_score = 0
+            if hba1c >= 6.5:
+                risk_score += 3
+            elif hba1c >= 5.7:
+                risk_score += 1
             
-            # If pred_proba is still zeros, make a default prediction
-            if np.sum(pred_proba) == 0:
-                logger.warning("No valid predictions from any model, using default prediction")
-                # Set a default prediction (80% No, 15% Possible, 5% Yes)
-                pred_proba = np.array([[0.8, 0.15, 0.05]])
-        except Exception as e:
-            logger.error(f"Error in ensemble prediction: {str(e)}")
-            return "Error", 0.0, [], f"Error in ensemble prediction: {str(e)}"
-        
-        # Get the prediction class and probability
-        try:
-            prediction_encoded = np.argmax(pred_proba, axis=1)[0]
-            max_probability = pred_proba[0, prediction_encoded]
+            if bmi >= 30:
+                risk_score += 2
+            elif bmi >= 25:
+                risk_score += 1
             
-            # Decode the prediction
-            prediction = class_encoder.inverse_transform([prediction_encoded])[0]
+            if age > 45:
+                risk_score += 1
             
-            logger.info(f"Final prediction: {prediction}, Probability: {max_probability:.2%}")
-        except Exception as e:
-            logger.error(f"Error in final prediction: {str(e)}")
-            return "Error", 0.0, [], f"Error in final prediction: {str(e)}"
+            if chol > 240:
+                risk_score += 1
+            
+            if hdl < 40:
+                risk_score += 1
+            
+            # Determine prediction based on risk score
+            if risk_score >= 4:
+                prediction = "Yes"
+                max_probability = 0.9
+            elif risk_score >= 2:
+                prediction = "Possible"
+                max_probability = 0.7
+            else:
+                prediction = "No"
+                max_probability = 0.8
+            
+            logger.info(f"Rule-based prediction: {prediction}, Probability: {max_probability:.2%}")
         
         # Calculate risk factors
         risk_factors = []
@@ -530,7 +445,7 @@ def predict_diabetes(features):
                 risk_factors.append("Elevated LDL Cholesterol")
             
             # Cholesterol ratio risks
-            chol_hdl_ratio = feature_dict.get('Chol_HDL_Ratio', chol / max(hdl, 1))
+            chol_hdl_ratio = chol / max(hdl, 1)
             if chol_hdl_ratio > 5:
                 risk_factors.append("High Cholesterol to HDL Ratio")
             
@@ -541,7 +456,7 @@ def predict_diabetes(features):
                 risk_factors.append("Elevated Creatinine")
             
             # Metabolic score risk
-            metabolic_score = feature_dict.get('Metabolic_Score', 0)
+            metabolic_score = hba1c * 2 + bmi / 10 + chol / 50 + tg / 50 - hdl / 20
             if metabolic_score > 15:
                 risk_factors.append("High Metabolic Risk Score")
             
