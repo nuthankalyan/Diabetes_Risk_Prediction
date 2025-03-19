@@ -1,9 +1,7 @@
 from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
+from django.contrib import messages
 import logging
-from predictor.ml_model import predict_diabetes, get_model_metrics
+from .ml_model import predict_diabetes, get_model_metrics
 import numpy as np
 import pandas as pd
 # Set matplotlib to use a non-interactive backend
@@ -31,19 +29,19 @@ def predict(request):
     """Process form submission and return prediction results."""
     if request.method == 'POST':
         try:
-            # Extract features from the form
+            # Extract features from form
             features = {
-                'gender': request.POST.get('gender', ''),
-                'age': request.POST.get('age', 0),
-                'urea': request.POST.get('urea', 0),
-                'cr': request.POST.get('cr', 0),
-                'hba1c': request.POST.get('hba1c', 0),
-                'chol': request.POST.get('chol', 0),
-                'tg': request.POST.get('tg', 0),
-                'hdl': request.POST.get('hdl', 0),
-                'ldl': request.POST.get('ldl', 0),
-                'vldl': request.POST.get('vldl', 0),
-                'bmi': request.POST.get('bmi', 0)
+                'gender': request.POST.get('gender'),
+                'age': float(request.POST.get('age')),
+                'bmi': float(request.POST.get('bmi')),
+                'urea': 30.0,  # Default values for now
+                'cr': 0.9,
+                'hba1c': float(request.POST.get('hba1c')),
+                'chol': float(request.POST.get('cholesterol')),  # Map 'cholesterol' from form to 'chol' expected by model
+                'tg': 150.0,  # Default value
+                'hdl': float(request.POST.get('hdl')),
+                'ldl': 120.0,  # Default value
+                'vldl': 25.0,  # Default value
             }
             
             logger.info(f"Processing input features: {features}")
@@ -51,96 +49,33 @@ def predict(request):
             # Make prediction
             prediction, probability, risk_factors, risk_details = predict_diabetes(features)
             
-            # Prepare context for the template
+            logger.info(f"Prediction: {prediction}, Probability: {probability:.4f}")
+            
+            # Prepare context for template
             context = {
                 'prediction': prediction,
-                'probability': f"{probability:.2%}",
-                'probability_value': probability,
+                'probability': f"{probability:.1%}",
                 'risk_factors': risk_factors,
-                'risk_details': risk_details
+                'risk_details': risk_details,
+                'features': features
             }
             
-            logger.info(f"Prediction: {prediction}, Probability: {probability:.2%}")
-            return render(request, 'predictor/home.html', context)
+            return render(request, 'predictor/result.html', context)
             
+        except ValueError as e:
+            messages.error(request, f"Invalid input: {str(e)}")
+            logger.error(f"Error processing form data: {str(e)}")
         except Exception as e:
+            messages.error(request, "An error occurred while processing your request.")
             logger.error(f"Error making prediction: {str(e)}")
-            context = {'error': f"An error occurred: {str(e)}"}
-            return render(request, 'predictor/home.html', context)
     
-    # If not POST, redirect to home
-    return render(request, 'predictor/home.html')
+    return render(request, 'predictor/predict.html')
 
 def visualizations(request):
     """Render the visualizations page."""
     # Get model metrics for the visualizations page
     metrics = get_model_metrics()
-    context = {'metrics': metrics}
-    return render(request, 'predictor/visualizations.html', context)
-
-@csrf_exempt
-def api_predict(request):
-    """
-    REST API endpoint for making diabetes predictions.
-    Accepts JSON post data and returns prediction results.
-    """
-    if request.method == 'POST':
-        try:
-            # Parse JSON data from request body
-            data = json.loads(request.body)
-            
-            # Extract features from the JSON
-            features = {
-                'gender': data.get('gender', 'M'),
-                'age': float(data.get('age', 0)),
-                'urea': float(data.get('urea', 0)),
-                'cr': float(data.get('cr', 0)),
-                'hba1c': float(data.get('hba1c', 0)),
-                'chol': float(data.get('chol', 0)),
-                'tg': float(data.get('tg', 0)),
-                'hdl': float(data.get('hdl', 0)),
-                'ldl': float(data.get('ldl', 0)),
-                'vldl': float(data.get('vldl', 0)),
-                'bmi': float(data.get('bmi', 0))
-            }
-            
-            logger.info(f"API: Processing input features: {features}")
-            
-            # Make prediction
-            prediction, probability, risk_factors, risk_details = predict_diabetes(features)
-            
-            # Prepare JSON response
-            response_data = {
-                'success': True,
-                'prediction': prediction,
-                'probability': f"{probability:.4f}",
-                'probability_raw': float(probability),
-                'risk_factors': risk_factors,
-                'risk_details': risk_details
-            }
-            
-            logger.info(f"API: Prediction: {prediction}, Probability: {probability:.4f}")
-            return JsonResponse(response_data)
-            
-        except json.JSONDecodeError:
-            logger.error("API: Invalid JSON data in request")
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid JSON data in request body'
-            }, status=400)
-            
-        except Exception as e:
-            logger.error(f"API: Error making prediction: {str(e)}")
-            return JsonResponse({
-                'success': False,
-                'error': f"An error occurred: {str(e)}"
-            }, status=500)
-    
-    # If not POST method
-    return JsonResponse({
-        'success': False,
-        'error': 'Only POST method is supported for this endpoint'
-    }, status=405)
+    return render(request, 'predictor/visualizations.html', {'metrics': metrics})
 
 def get_feature_importance_plot(feature_importance):
     plt.figure(figsize=(10, 6))

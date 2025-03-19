@@ -1,0 +1,179 @@
+{% extends 'predictor/base.html' %}
+
+{% block title %}Predict Diabetes Risk{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Diabetes Risk Assessment Form</h3>
+        </div>
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <!-- Personal Information -->
+                <div class="form-section">
+                    <h5><i class="fas fa-user me-2"></i>Personal Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="age" class="form-label">Age <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="age" name="age" required min="18" max="100">
+                                <div class="invalid-feedback">Please enter a valid age between 18 and 100.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+                                <select class="form-select" id="gender" name="gender" required>
+                                    <option value="">Select gender</option>
+                                    <option value="M">Male</option>
+                                    <option value="F">Female</option>
+                                </select>
+                                <div class="invalid-feedback">Please select your gender.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health Metrics -->
+                <div class="form-section">
+                    <h5><i class="fas fa-heartbeat me-2"></i>Health Metrics</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bmi" class="form-label">BMI <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="bmi" name="bmi" required step="0.1" min="15" max="50">
+                                <div class="invalid-feedback">Please enter a valid BMI between 15 and 50.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="blood_pressure" class="form-label">Blood Pressure (systolic) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="blood_pressure" name="blood_pressure" required min="70" max="200">
+                                <div class="invalid-feedback">Please enter a valid blood pressure reading.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blood Tests -->
+                <div class="form-section">
+                    <h5><i class="fas fa-vial me-2"></i>Blood Test Results</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="glucose" class="form-label">Glucose Level (mg/dL) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="glucose" name="glucose" required min="70" max="300">
+                                <div class="invalid-feedback">Please enter a valid glucose level.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="hba1c" class="form-label">HbA1c (%) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="hba1c" name="hba1c" required step="0.1" min="4" max="15">
+                                <div class="invalid-feedback">Please enter a valid HbA1c value.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="cholesterol" class="form-label">Total Cholesterol (mg/dL) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="cholesterol" name="cholesterol" required min="100" max="400">
+                                <div class="invalid-feedback">Please enter a valid cholesterol value.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="hdl" class="form-label">HDL Cholesterol (mg/dL) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="hdl" name="hdl" required min="20" max="100">
+                                <div class="invalid-feedback">Please enter a valid HDL value.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lifestyle Factors -->
+                <div class="form-section">
+                    <h5><i class="fas fa-walking me-2"></i>Lifestyle Factors</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">Smoking Status <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="smoking" id="smoking_yes" value="yes" required>
+                                    <label class="form-check-label" for="smoking_yes">Yes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="smoking" id="smoking_no" value="no">
+                                    <label class="form-check-label" for="smoking_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">Physical Activity <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="physical_activity" id="activity_yes" value="yes" required>
+                                    <label class="form-check-label" for="activity_yes">Yes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="physical_activity" id="activity_no" value="no">
+                                    <label class="form-check-label" for="activity_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">Family History of Diabetes <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="family_history" id="history_yes" value="yes" required>
+                                    <label class="form-check-label" for="history_yes">Yes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="family_history" id="history_no" value="no">
+                                    <label class="form-check-label" for="history_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-calculator me-2"></i>Calculate Risk
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}
+{% endblock %} 

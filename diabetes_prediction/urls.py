@@ -24,6 +24,4 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('predict/', views.predict, name='predict'),
     path('visualizations/', views.visualizations, name='visualizations'),
-    path('api/predict/', views.api_predict, name='api_predict'),
-    path('api/docs/', TemplateView.as_view(template_name='predictor/api_docs.html'), name='api_docs'),
 ]
