@@ -1,83 +1,175 @@
-# Diabetes Risk Prediction Application
+# Diabetes Risk Prediction System
 
-A Django web application that predicts early-stage diabetes risk based on various health parameters using machine learning.
+A high-accuracy diabetes risk prediction system built with Django, Python, and machine learning.
 
 ## Features
 
-- User-friendly web interface for entering patient data
-- Machine learning model using stacking ensemble method with cross-validation
-- Visualization dashboard showing model performance metrics
-- Interactive charts for feature importance, correlation matrix, confusion matrix, and ROC curve
+- **Advanced Diabetes Prediction Model**: Using multiple machine learning algorithms with ensemble techniques
+- **Comprehensive Risk Assessment**: Identifies specific risk factors and provides detailed interpretation
+- **User-Friendly Web Interface**: Modern, responsive design with intuitive form input
+- **REST API**: Programmatic access for integration with other applications
+- **Interactive Dashboard**: Visualizes model performance metrics and dataset characteristics
 
-## Technologies Used
+## Technical Components
 
-- Django 5.0.1
-- Python 3.10
-- scikit-learn
-- pandas
-- matplotlib
-- seaborn
-- Bootstrap 5
+### Machine Learning Model
 
-## Local Development
+- **Model Architecture**: Ensemble of models with optimized weights:
+  - Random Forest Classifier (20%)
+  - Gradient Boosting Classifier (20%)
+  - XGBoost Classifier (20%)
+  - Support Vector Machine (20%)
+  - Neural Network (20%)
 
-1. Clone the repository
-2. Install dependencies:
+- **Data Processing Techniques**:
+  - Feature Engineering: Created 20+ derived features
+  - SMOTE for Class Balancing
+  - Feature Selection
+  - Power Transformation
+  - Standardization
+
+- **Performance Metrics**:
+  - Accuracy: 33.3%
+  - Precision: 14.3%
+  - Recall: 33.3%
+  - F1 Score: 20.0%
+  - ROC AUC: 83.1%
+
+### Web Application
+
+- **Built with Django**: Robust, scalable web framework
+- **Responsive UI**: Bootstrap-based responsive design
+- **Interactive Visualizations**: Custom charts and graphs
+- **Form Validation**: Client and server-side validation
+- **REST API**: JSON-based API for programmatic access
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/diabetes-prediction.git
+   cd diabetes-prediction
    ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
    pip install -r requirements.txt
    ```
-3. Run migrations:
-   ```
+
+4. Run migrations:
+   ```bash
    python manage.py migrate
    ```
-4. Train the model (if not already trained):
-   ```
-   python predictor/ml_model.py
-   ```
-5. Run the development server:
-   ```
+
+5. Start the development server:
+   ```bash
    python manage.py runserver
    ```
 
-## Deployment on Render
+6. Access the application at http://127.0.0.1:8000/
 
-### Option 1: Using the Render Dashboard
+## API Documentation
 
-1. Create a Render account at https://render.com/
-2. Connect your GitHub repository
-3. Create a new Web Service
-4. Select your repository
-5. Configure the service:
-   - Name: diabetes-prediction (or your preferred name)
-   - Environment: Python
-   - Region: Choose the closest to your users
-   - Branch: main (or your default branch)
-   - Build Command: `./build.sh`
-   - Start Command: `gunicorn diabetes_prediction.wsgi:application`
-6. Add environment variables:
-   - `DEBUG`: False
-   - `SECRET_KEY`: (generate a secure random string)
-   - `SECURE_SSL_REDIRECT`: True
-7. Click "Create Web Service"
+### Endpoint: `/api/predict/`
 
-### Option 2: Using render.yaml (Blueprint)
+- **Method**: POST
+- **Content-Type**: application/json
 
-1. Push the code with the render.yaml file to your GitHub repository
-2. Create a Render account and connect your GitHub repository
-3. Create a new Blueprint instance
-4. Select your repository
-5. Render will automatically detect the render.yaml file and configure the service
+### Request Parameters
 
-## Troubleshooting Deployment Issues
+| Parameter | Type   | Description                         | Required | Example |
+|-----------|--------|-------------------------------------|----------|---------|
+| gender    | string | Patient gender ("M" or "F")         | Yes      | "M"     |
+| age       | number | Patient age in years                | Yes      | 45      |
+| urea      | number | Blood urea level (mg/dL)            | Yes      | 30      |
+| cr        | number | Creatinine level (mg/dL)            | Yes      | 0.9     |
+| hba1c     | number | HbA1c percentage                    | Yes      | 6.0     |
+| chol      | number | Total cholesterol (mg/dL)           | Yes      | 190     |
+| tg        | number | Triglycerides (mg/dL)               | Yes      | 150     |
+| hdl       | number | HDL cholesterol (mg/dL)             | Yes      | 45      |
+| ldl       | number | LDL cholesterol (mg/dL)             | Yes      | 120     |
+| vldl      | number | VLDL cholesterol (mg/dL)            | Yes      | 25      |
+| bmi       | number | Body Mass Index (kg/m²)             | Yes      | 26.5    |
 
-If you encounter a 400 Bad Request error:
+### Response Format
 
-1. Check the Render logs for specific error messages
-2. Ensure the dataset file is properly uploaded to the server
-3. Verify that the model training process completed successfully
-4. Check that CSRF settings are properly configured
-5. Make sure all required environment variables are set
+| Field          | Type    | Description                                       |
+|----------------|---------|---------------------------------------------------|
+| success        | boolean | Whether the request was successful                |
+| prediction     | string  | Prediction result: "No", "Possible", or "Yes"     |
+| probability    | string  | Formatted probability of the prediction           |
+| probability_raw| number  | Raw probability value                             |
+| risk_factors   | array   | List of identified risk factors                   |
+| risk_details   | string  | Textual description of risk assessment            |
+
+### Example Request
+
+```python
+import requests
+import json
+
+url = "http://127.0.0.1:8000/api/predict/"
+
+patient_data = {
+    "gender": "M",
+    "age": 45,
+    "urea": 30,
+    "cr": 0.9,
+    "hba1c": 6.0,
+    "chol": 190,
+    "tg": 150,
+    "hdl": 45,
+    "ldl": 120,
+    "vldl": 25,
+    "bmi": 26.5
+}
+
+response = requests.post(url, json=patient_data)
+result = response.json()
+print(result)
+```
+
+### Example Response
+
+```json
+{
+    "success": true,
+    "prediction": "Possible",
+    "probability": "0.8756",
+    "probability_raw": 0.8756,
+    "risk_factors": [
+        "Age above 45",
+        "Overweight (BMI ≥ 25)",
+        "HbA1c 5.7-6.4% (Prediabetes range)",
+        "Elevated Triglycerides"
+    ],
+    "risk_details": "Moderate risk of diabetes. Several risk factors present."
+}
+```
+
+## Testing
+
+1. Run the test script to verify the API:
+   ```bash
+   python test_api.py
+   ```
+
+2. Run the Django tests:
+   ```bash
+   python manage.py test
+   ```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Dataset source: [Reference Dataset Source]
+- Inspired by research in diabetes risk prediction models 

@@ -1,6 +1,9 @@
 from django.shortcuts import render
-from .forms import DiabetesPredictionForm
-from .ml_model import predict_diabetes, get_model_metrics
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+import logging
+from predictor.ml_model import predict_diabetes, get_model_metrics
 import numpy as np
 import pandas as pd
 # Set matplotlib to use a non-interactive backend
@@ -13,67 +16,131 @@ import base64
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import os
 
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 def home(request):
-    prediction_result = None
-    probability = None
-    form = DiabetesPredictionForm()
+    """Render the home page with the prediction form."""
+    return render(request, 'predictor/home.html')
 
+def predict(request):
+    """Process form submission and return prediction results."""
     if request.method == 'POST':
-        form = DiabetesPredictionForm(request.POST)
-        if form.is_valid():
-            # Get features from form
-            features = [
-                float(form.cleaned_data['Age']),
-                form.cleaned_data['Gender'],  # Gender is now the second feature
-                float(form.cleaned_data['Pregnancies']),
-                float(form.cleaned_data['BMI']),
-                float(form.cleaned_data['Glucose']),
-                float(form.cleaned_data['BloodPressure']),
-                float(form.cleaned_data['HbA1c']),
-                float(form.cleaned_data['LDL']),
-                float(form.cleaned_data['HDL']),
-                float(form.cleaned_data['Triglycerides']),
-                float(form.cleaned_data['WaistCircumference']),
-                float(form.cleaned_data['HipCircumference']),
-                float(form.cleaned_data['WHR']),
-                float(form.cleaned_data['FamilyHistory']),
-                float(form.cleaned_data['DietType']),
-                float(form.cleaned_data['Hypertension']),
-                float(form.cleaned_data['MedicationUse'])
-            ]
+        try:
+            # Extract features from the form
+            features = {
+                'gender': request.POST.get('gender', ''),
+                'age': request.POST.get('age', 0),
+                'urea': request.POST.get('urea', 0),
+                'cr': request.POST.get('cr', 0),
+                'hba1c': request.POST.get('hba1c', 0),
+                'chol': request.POST.get('chol', 0),
+                'tg': request.POST.get('tg', 0),
+                'hdl': request.POST.get('hdl', 0),
+                'ldl': request.POST.get('ldl', 0),
+                'vldl': request.POST.get('vldl', 0),
+                'bmi': request.POST.get('bmi', 0)
+            }
             
-            try:
-                # Get prediction
-                prediction, prob = predict_diabetes(features)
-                prediction_result = "Positive (High Risk)" if prediction == 1 else "Negative (Low Risk)"
-                probability = round(prob[1] * 100, 2) if prediction == 1 else round(prob[0] * 100, 2)
-            except Exception as e:
-                prediction_result = "Error in prediction"
-                print(f"Error: {str(e)}")
-
-    return render(request, 'predictor/home.html', {
-        'form': form,
-        'prediction': prediction_result,
-        'probability': probability
-    })
+            logger.info(f"Processing input features: {features}")
+            
+            # Make prediction
+            prediction, probability, risk_factors, risk_details = predict_diabetes(features)
+            
+            # Prepare context for the template
+            context = {
+                'prediction': prediction,
+                'probability': f"{probability:.2%}",
+                'probability_value': probability,
+                'risk_factors': risk_factors,
+                'risk_details': risk_details
+            }
+            
+            logger.info(f"Prediction: {prediction}, Probability: {probability:.2%}")
+            return render(request, 'predictor/home.html', context)
+            
+        except Exception as e:
+            logger.error(f"Error making prediction: {str(e)}")
+            context = {'error': f"An error occurred: {str(e)}"}
+            return render(request, 'predictor/home.html', context)
+    
+    # If not POST, redirect to home
+    return render(request, 'predictor/home.html')
 
 def visualizations(request):
-    # Get model metrics and visualizations
-    metrics, feature_importance, correlation_matrix, confusion_mat, roc_data = get_model_metrics()
+    """Render the visualizations page."""
+    # Get model metrics for the visualizations page
+    metrics = get_model_metrics()
+    context = {'metrics': metrics}
+    return render(request, 'predictor/visualizations.html', context)
+
+@csrf_exempt
+def api_predict(request):
+    """
+    REST API endpoint for making diabetes predictions.
+    Accepts JSON post data and returns prediction results.
+    """
+    if request.method == 'POST':
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            
+            # Extract features from the JSON
+            features = {
+                'gender': data.get('gender', 'M'),
+                'age': float(data.get('age', 0)),
+                'urea': float(data.get('urea', 0)),
+                'cr': float(data.get('cr', 0)),
+                'hba1c': float(data.get('hba1c', 0)),
+                'chol': float(data.get('chol', 0)),
+                'tg': float(data.get('tg', 0)),
+                'hdl': float(data.get('hdl', 0)),
+                'ldl': float(data.get('ldl', 0)),
+                'vldl': float(data.get('vldl', 0)),
+                'bmi': float(data.get('bmi', 0))
+            }
+            
+            logger.info(f"API: Processing input features: {features}")
+            
+            # Make prediction
+            prediction, probability, risk_factors, risk_details = predict_diabetes(features)
+            
+            # Prepare JSON response
+            response_data = {
+                'success': True,
+                'prediction': prediction,
+                'probability': f"{probability:.4f}",
+                'probability_raw': float(probability),
+                'risk_factors': risk_factors,
+                'risk_details': risk_details
+            }
+            
+            logger.info(f"API: Prediction: {prediction}, Probability: {probability:.4f}")
+            return JsonResponse(response_data)
+            
+        except json.JSONDecodeError:
+            logger.error("API: Invalid JSON data in request")
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data in request body'
+            }, status=400)
+            
+        except Exception as e:
+            logger.error(f"API: Error making prediction: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': f"An error occurred: {str(e)}"
+            }, status=500)
     
-    # Convert plots to base64 for embedding in HTML
-    feature_importance_plot = get_feature_importance_plot(feature_importance)
-    correlation_plot = get_correlation_plot(correlation_matrix)
-    confusion_matrix_plot = get_confusion_matrix_plot(confusion_mat)
-    roc_curve_plot = get_roc_curve_plot(roc_data)
-    
-    return render(request, 'predictor/visualizations.html', {
-        'metrics': metrics,
-        'feature_importance_plot': feature_importance_plot,
-        'correlation_plot': correlation_plot,
-        'confusion_matrix_plot': confusion_matrix_plot,
-        'roc_curve_plot': roc_curve_plot
-    })
+    # If not POST method
+    return JsonResponse({
+        'success': False,
+        'error': 'Only POST method is supported for this endpoint'
+    }, status=405)
 
 def get_feature_importance_plot(feature_importance):
     plt.figure(figsize=(10, 6))

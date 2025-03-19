@@ -17,9 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from predictor import views
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
+    path('predict/', views.predict, name='predict'),
     path('visualizations/', views.visualizations, name='visualizations'),
+    path('api/predict/', views.api_predict, name='api_predict'),
+    path('api/docs/', TemplateView.as_view(template_name='predictor/api_docs.html'), name='api_docs'),
 ]
