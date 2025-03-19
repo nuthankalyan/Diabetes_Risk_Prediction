@@ -175,8 +175,14 @@ def plot_metrics_comparison():
         
         # Create a bar chart of metrics
         plt.figure(figsize=(10, 6))
-        metric_names = list(metrics.keys())
-        metric_values = list(metrics.values())
+        metric_names = []
+        metric_values = []
+        
+        # Only use numeric metrics
+        for key, value in metrics.items():
+            if key in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc'] and isinstance(value, (int, float)):
+                metric_names.append(key)
+                metric_values.append(value)
         
         bars = plt.bar(metric_names, metric_values)
         plt.title('Model Performance Metrics')
@@ -192,15 +198,54 @@ def plot_metrics_comparison():
         plt.tight_layout()
         plt.savefig('static/predictor/images/metrics_comparison.png')
         plt.close()
+        
+        # Also save as accuracy_metrics.png for the Django template
+        plt.figure(figsize=(10, 6))
+        bars = plt.bar(metric_names, metric_values)
+        plt.title('Model Performance Metrics')
+        plt.ylim(0, 1.1)
+        
+        # Add value labels on top of bars
+        for bar in bars:
+            height = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{height:.3f}',
+                    ha='center', va='bottom')
+        
+        plt.tight_layout()
+        plt.savefig('static/predictor/images/accuracy_metrics.png')
+        plt.close()
+        
         return True
     except Exception as e:
         print(f"Could not load metrics file: {e}")
         return False
 
+# def save_confusion_matrix_json(y_true, y_pred, classes):
+#     """Save confusion matrix as JSON for the Django template."""
+#     cm = confusion_matrix(y_true, y_pred)
+    
+#     # Create a dictionary structure matching the Django template
+#     cm_dict = {
+#         "matrix": [
+#             [int(cm[0, 0]), int(cm[0, 1]), int(cm[0, 2])],
+#             [int(cm[1, 0]), int(cm[1, 1]), int(cm[1, 2])],
+#             [int(cm[2, 0]), int(cm[2, 1]), int(cm[2, 2])]
+#         ]
+#     }
+    
+#     # Save as JSON file
+#     import json
+#     with open('static/predictor/data/confusion_matrix.json', 'w') as f:
+#         json.dump(cm_dict, f)
+    
+#     print("Confusion matrix saved as JSON")
+
 def generate_all_visualizations():
     """Generate all model visualizations."""
     # Create static directory if it doesn't exist
     os.makedirs('static/predictor/images', exist_ok=True)
+    os.makedirs('static/predictor/data', exist_ok=True)
     
     # Generate synthetic data
     print("Generating synthetic data...")
@@ -290,6 +335,10 @@ def generate_all_visualizations():
         print("Plotting confusion matrix...")
         classes = class_encoder.classes_
         plot_confusion_matrix(y_test, y_pred, classes)
+        
+        # Save confusion matrix as JSON for Django
+        # print("Saving confusion matrix as JSON...")
+        # save_confusion_matrix_json(y_test, y_pred, classes)
         
         # Plot ROC curves
         print("Plotting ROC curves...")
