@@ -340,7 +340,7 @@ def predict_diabetes(features):
                 prediction = class_encoder.inverse_transform([prediction_encoded])[0]
                 logger.info(f"Stacking model prediction: {prediction}, Probability: {max_probability:.2%}")
                 
-            except Exception as e:
+    except Exception as e:
                 logger.error(f"Error using stacking model: {str(e)}")
                 # Fall back to a heuristic-based prediction
                 logger.info("Falling back to heuristic-based prediction")
